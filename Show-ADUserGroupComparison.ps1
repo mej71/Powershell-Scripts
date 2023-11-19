@@ -1,11 +1,17 @@
 [CmdletBinding()]
 param(
-  [Parameter(Mandatory)] [String]$username1,
-  [Parameter(Mandatory)] [String]$username2,
-  [String]$domainFQDN
+  [Parameter(Mandatory)] [String]$Username1,
+  [Parameter(Mandatory)] [String]$Username2,
+  [String]$DomainName  
 )
 
 Import-Module -Name ActiveDirectory
+
+# Check if the script is running as an administrator, as it will not function correctly in some instances
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "This script requires administrative privileges to work properly. Please run the script as an administrator."    
+    exit # Exit the current script
+}
 
 Function GetUserGroupMembership {
     [OutputType([System.Collections.ArrayList])]
@@ -23,7 +29,6 @@ Function GetUserGroupMembership {
         } elseif (-not $groupMembership -is [System.Collections.ICollection]) {
             $groupMembership = @($groupMembership)  # Convert to array
         }
-
         return [System.Collections.ArrayList]$groupMembership
     } catch {
         Write-Host $_.Exception.Message
@@ -36,7 +41,8 @@ Function CreateUserInfoObject {
     param ([Parameter(Mandatory)][String]$user)
     $infoObject = [PSCustomObject]@{
         Name        = $user
-        AllGroups   = [System.Collections.ArrayList]@(GetUserGroupMembership $user $domainFQDN)
+        AllGroups   = [System.Collections.ArrayList]@(GetUserGroupMembership $user $domainName
+        )
         UniqueGroups = [System.Collections.ArrayList]::New()
     }
     return $infoObject
