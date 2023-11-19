@@ -8,7 +8,7 @@ param(
 Import-Module -Name ActiveDirectory
 
 Function GetUserGroupMembership {
-    param ($user, $domainName)
+    param ([Parameter(Mandatory)][String]$user, [String]$domainName)
     try {
         if ($domainName) {
             return Get-ADPrincipalGroupMembership -Identity $user -ResourceContextServer  $domainName | Select-Object Name
@@ -16,25 +16,31 @@ Function GetUserGroupMembership {
             return Get-ADPrincipalGroupMembership -Identity $user | Select-Object Name
         }
     } catch {
-        Write-Host "Unable to obtain Group Memberships for " + $user + ", please make sure this username was entered correctly, and you are searching on the correct domain.  Terminating script"
+        Write-Host $_.Exception.Message
+        Write-Host "Unable to obtain Group Memberships for "$user", please make sure this username was entered correctly, and you are searching on the correct domain.  Terminating script"
         exit 55
     }
     return 
 }
 
 Function CreateUserInfoObject {
-    return [PSCustomObject]@{
-        Name = Value
+    param ([Parameter(Mandatory)][String]$user)
+    $infoObject = [PSCustomObject]@{
+        Name = $user
         AllGroups = New-Object System.Collections.ArrayList
         UniqueGroups = New-Object System.Collections.ArrayList
     }
+    $infoObject.AllGroups = @(GetUserGroupMembership $user $domainFQDN)
+    return $infoObject
 }
 
-$user1Info = CreateUserInfoObject
-$user1Info.AllGroups = GetUserGroupMembership($username1, $domainFQDN)
+#cleanup parameters
+$username1 = $username1.Trim()
+$username2 = $username2.Trim()
 
-$user2Info = CreateUserInfoObject
-$user2Info.AllGroups = GetUserGroupMembership($username2, $domainFQDN)
+$user1Info = CreateUserInfoObject($username1)
+
+$user2Info = CreateUserInfoObject($username2)
 $user2Info.UniqueGroups = $user2Info.AllGroups | ForEach-Object {$_} #make deep copy of array
 
 $nonUniqueGroups = @()
@@ -50,9 +56,9 @@ foreach ($group1 in $user1Info.AllGroups) {
         }
     }
     if (!$foundMatch) {
-        $user1Info.UniqueGroups.Add($group1)
+        $user1Info.UniqueGroups.Add($group1) | out-null
     } else {
-        $user2Info.UniqueGroups.Remove($group1)
+        $user2Info.UniqueGroups.Remove($group1) | out-null
     }
 }
 
