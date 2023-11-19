@@ -24,8 +24,7 @@ Function GetUserGroupMembership {
             $groupMembership = @($groupMembership)  # Convert to array
         }
 
-        $groupArrayList = [System.Collections.ArrayList]@($groupMembership)
-        return $groupArrayList
+        return [System.Collections.ArrayList]$groupMembership
     } catch {
         Write-Host $_.Exception.Message
         exit 55
@@ -36,11 +35,10 @@ Function GetUserGroupMembership {
 Function CreateUserInfoObject {
     param ([Parameter(Mandatory)][String]$user)
     $infoObject = [PSCustomObject]@{
-        Name = $user
-        AllGroups = [System.Collections.ArrayList]@()  # Initialize as ArrayList
+        Name        = $user
+        AllGroups   = [System.Collections.ArrayList]@(GetUserGroupMembership $user $domainFQDN)
         UniqueGroups = [System.Collections.ArrayList]::New()
-    }    
-    $infoObject.AllGroups = [System.Collections.ArrayList]@(GetUserGroupMembership $user $domainFQDN)
+    }
     return $infoObject
 }
 
@@ -49,7 +47,6 @@ $username1 = $username1.Trim()
 $username2 = $username2.Trim()
 
 $user1Info = CreateUserInfoObject($username1)
-
 $user2Info = CreateUserInfoObject($username2)
 $user2Info.UniqueGroups = [System.Collections.ArrayList] $user2Info.AllGroups.Clone()
 
