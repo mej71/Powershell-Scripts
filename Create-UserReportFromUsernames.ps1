@@ -18,7 +18,7 @@ $outputCSVArray = New-Object System.Collections.ArrayList
 
 #only run if files were selected
 if ($null -ne $userReport ){
-    foreach($Value in $userReport) {
+    ForEach($Value in $userReport) {
         $obj = New-Object System.Object
         $adUser = $null
         $username = $Value."Username"
